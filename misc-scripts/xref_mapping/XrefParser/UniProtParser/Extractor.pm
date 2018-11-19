@@ -573,7 +573,7 @@ sub _get_quality {
     = ( $pe_line =~ m{
                        \A
 
-                       ( [1-4] )
+                       ( [1-5] )
                        \s*
                        :
                    }msx );
