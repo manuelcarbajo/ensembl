@@ -186,10 +186,10 @@ sub extract {
        'accession_numbers' => $self->_get_accession_numbers(),
        'citation_groups'   => $self->_get_citation_groups(),
        'crossreferences'   => $self->_get_database_crossreferences(),
-       'description'       => $self->_get_description(),
+       'description'       => $self->_get_description() // undef,
        'gene_names'        => $self->_get_gene_names(),
        'quality'           => $self->_get_quality(),
-       'sequence'          => $self->_get_sequence(),
+       'sequence'          => $self->_get_sequence() // undef,
        'taxon_codes'       => $self->_get_taxon_codes(),
      };
 
