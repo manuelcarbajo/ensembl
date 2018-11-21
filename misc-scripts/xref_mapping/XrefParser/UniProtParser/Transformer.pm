@@ -195,7 +195,7 @@ sub get_source_id_map {
   # constructor so it shouldn't be possible to call this method before
   # maps have been loaded
   if ( ! exists $self->{'maps'}->{'named_source_ids'} ) {
-    croak 'Source-ID map is missing';
+    confess 'Source-ID map is missing';
   }
 
   return $self->{'maps'}->{'named_source_ids'};
@@ -210,7 +210,7 @@ sub _load_maps {
                                                          $self->{'dbh'} );
   # If the map is empty, something is wrong
   if ( scalar keys %{ $taxonomy_ids_for_species } == 0 ) {
-    croak "Got zero taxonomy_ids for species_id '"
+    confess "Got zero taxonomy_ids for species_id '"
       . $self->{'species_id'} . q{'};
   }
   $self->{'maps'}->{'taxonomy_ids_for_species'}
@@ -237,7 +237,7 @@ sub _load_maps {
                                                               $priority,
                                                               $self->{'dbh'} );
       if ( $pri_ref->{$priority} == $ERR_SOURCE_ID_NOT_FOUND ) {
-        croak "No source ID found for source $source_name, priority $priority";
+        confess "No source ID found for source $source_name, priority $priority";
       }
     }
   }

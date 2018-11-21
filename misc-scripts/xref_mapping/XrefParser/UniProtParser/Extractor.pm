@@ -138,7 +138,7 @@ sub new {
   my $filename = $file_names->[0];
   my $filehandle = $baseParserInstance->get_filehandle( $filename );
   if ( !defined $filehandle ) {
-    croak "Failed to acquire a file handle for '${filename}'";
+    confess "Failed to acquire a file handle for '${filename}'";
   }
 
   # Keep the file name for possible debugging purposes, unless we can
@@ -203,7 +203,7 @@ sub get_uniprot_record {
                            \z
                        }msx );
     if ( ! defined $prefix ) {
-      croak 'Malformed prefix';
+      confess "Malformed prefix in line:\n\t${file_line}";
     }
 
     if ( $prefix eq q{//} ) {
@@ -227,7 +227,7 @@ sub get_uniprot_record {
   # If we began parsing fields but have never reached the //,
   # something is very wrong
   if ( scalar keys %{ $uniprot_record } > 0 ) {
-    croak "Incomplete input record";
+    confess 'Incomplete input record';
   }
 
   # EOF
@@ -373,7 +373,7 @@ sub _get_database_crossreferences {
                           \z
                       }msx );
     if ( ! defined $last_opt ) {
-      croak "Malformed final-option match in:\n\t$dr_line";
+      confess "Malformed final-option match in:\n\t$dr_line";
     }
 
     # At the very least, strips the trailing dot
@@ -527,7 +527,7 @@ sub _get_gene_names {
     # present if there is a "Name" token.
     if ( ( exists $parsed_entry->{'Synonyms'} )
          && ( ! exists $parsed_entry->{'Name'} ) ) {
-      croak "Malformed input: found 'Synonyms' but no 'Name' in:\n\t$entry";
+      confess "Malformed input: found 'Synonyms' but no 'Name' in:\n\t$entry";
     }
 
     push @{ $gene_names }, $parsed_entry;
@@ -559,7 +559,7 @@ sub _get_quality {
                        ;
                    }msx );
   if ( ! defined $entry_status ) {
-    croak "Invalid entry status in:\n\t$id_line";
+    confess "Invalid entry status in:\n\t$id_line";
   }
 
   # Likewise, there is only one PE line
@@ -573,7 +573,7 @@ sub _get_quality {
                        :
                    }msx );
   if ( ! defined $evidence_level ) {
-    croak "Invalid protein evidence level in:\n\t$pe_line";
+    confess "Invalid protein evidence level in:\n\t$pe_line";
   }
 
   return {
@@ -656,7 +656,7 @@ sub _get_taxon_codes {
     if ( ( ! defined $db_qualifier )
          || ( ! exists $supported_taxon_database_qualifiers{$db_qualifier} ) ) {
       # Abort on malformed or new database qualifiers
-      croak "Cannot use taxon-DB qualifier '${db_qualifier}'";
+      confess "Cannot use taxon-DB qualifier '${db_qualifier}'";
     }
     elsif ( ! $supported_taxon_database_qualifiers{$db_qualifier} ) {
       # Known but of no interest. Ignore it.
@@ -664,7 +664,7 @@ sub _get_taxon_codes {
     }
 
     if ( ! defined $taxon_code ) {
-      croak "Failed to extract taxon code from:\n\t${ox_line}";
+      confess "Failed to extract taxon code from:\n\t${ox_line}";
     }
 
     push @extracted_taxon_codes, {
@@ -688,7 +688,7 @@ sub _record_has_all_needed_fields {
   my $has_all
     = List::Util::all { exists $self->{'record'}->{$_} } @needed_fields;
   if ( ! $has_all ) {
-    croak 'One or more required fields missing in record';
+    confess 'One or more required fields missing in record';
  }
 
   return;

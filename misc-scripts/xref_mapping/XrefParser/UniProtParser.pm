@@ -57,7 +57,7 @@ sub run {
        ( !defined $species_id ) or
        ( !defined $files ) )
   {
-    croak "Need to pass source_id, species_id and files as pairs";
+    confess "Need to pass source_id, species_id and files as pairs";
   }
 
   # Try to control where ETL modules can come from, just in case

@@ -81,7 +81,7 @@ sub flush {
 
   if ( ! $bp->upload_xref_object_graphs($self->{'send_buffer'},
                                         $self->{'dbh'}) ) {
-    croak 'Failed to upload xref object graphs. Check for errors on STDOUT)';
+    confess 'Failed to upload xref object graphs. Check for errors on STDOUT';
   }
 
   $self->_clear_send_buffer();
