@@ -168,9 +168,6 @@ sub transform {
   if ( scalar @{ $genename_dependent_xrefs } > 0 ) {
     push @{ $xref_graph_node->{'DEPENDENT_XREFS'} }, @{ $genename_dependent_xrefs };
   }
-  # FIXME: if this outputs multiple dependent xrefs, all their links
-  # will point to the first xref object created. This is due to a bug
-  # in BaseParser.
 
   # All other xref links come from crossreferences
   my ( $direct_xrefs, $dependent_xrefs )
@@ -184,13 +181,13 @@ sub transform {
     push @{ $xref_graph_node->{'DEPENDENT_XREFS'} }, @{ $dependent_xrefs };
   }
 
-  # FIXME: fix BaseParser to make dep-xref insertion via the graph replay-safe!!!
-
   return $xref_graph_node;
 }
 
 
-# FIXME: description
+# Returns a hashref mapping source-name/priority pairs to source
+# IDs. Used by the steering code to e.g. handle the setting of release
+# numbers on sources.
 sub get_source_id_map {
   my ( $self ) = @_;
 

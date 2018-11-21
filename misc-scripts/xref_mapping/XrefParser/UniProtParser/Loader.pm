@@ -64,7 +64,6 @@ sub load {
     return;
   }
 
-  # FIXME: pass $count from Transformer
   $self->_add_to_send_buffer( $transformed_data );
 
   if ( $self->{'send_backlog'} >= $self->{'batch_size'} ) {
@@ -95,7 +94,6 @@ sub _add_to_send_buffer {
   my ( $self, $entry ) = @_;
 
   push @{ $self->{'send_buffer'} }, $entry;
-  # FIXME: update the counter CORRECTLY
   $self->{'send_backlog'}++;
 
   return;

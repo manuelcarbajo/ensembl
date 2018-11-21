@@ -667,8 +667,6 @@ sub _get_taxon_codes {
       croak "Failed to extract taxon code from:\n\t${ox_line}";
     }
 
-    # FIXME: further processing?
-
     push @extracted_taxon_codes, {
                                   'db_qualifier' => $db_qualifier,
                                   'taxon_code'     => $taxon_code,
