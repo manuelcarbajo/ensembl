@@ -25,11 +25,8 @@ use strict;
 use warnings;
 
 use Carp;
+use Module::Load;
 use Readonly;
-
-use XrefParser::UniProtParser::Extractor;
-use XrefParser::UniProtParser::Transformer;
-use XrefParser::UniProtParser::Loader;
 
 use parent qw( XrefParser::BaseParser );
 
@@ -63,16 +60,29 @@ sub run {
     croak "Need to pass source_id, species_id and files as pairs";
   }
 
-  my $extractor = XrefParser::UniProtParser::Extractor->new({
+  # Try to control where ETL modules can come from, just in case
+  # someone does something really weird with configuration options.
+  my $extractor_class = 'XrefParser::UniProtParser::'
+    . ( $ref_arg->{extractor_class} // 'Extractor' );
+  my $transformer_class = 'XrefParser::UniProtParser::'
+    . ( $ref_arg->{transformer_class} // 'Transformer' );
+  my $loader_class = 'XrefParser::UniProtParser::'
+    . ( $ref_arg->{loader_class} // 'Loader' );
+
+  load $extractor_class;
+  load $transformer_class;
+  load $loader_class;
+
+  my $extractor = $extractor_class->new({
     'baseParser' => $self,
     'file_names' => $files,
   });
-  my $transformer = XrefParser::UniProtParser::Transformer->new({
+  my $transformer = $transformer_class->new({
     'baseParser' => $self,
     'dbh'        => $dbh,
     'species_id' => $species_id,
   });
-  my $loader = XrefParser::UniProtParser::Loader->new({
+  my $loader = $loader_class->new({
     'baseParser' => $self,
     'batch_size' => $loader_batch_size,
     'dbh'        => $dbh,
