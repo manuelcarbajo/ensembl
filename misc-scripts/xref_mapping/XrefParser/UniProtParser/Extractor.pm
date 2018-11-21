@@ -49,20 +49,6 @@ Readonly my $QR_DR_ISOFORM_FIELD_PATTERN
          \s*
      }msx;
 
-# While processing DE fields i.e. descriptions, used to separate the
-# value part of key-value pairs those fields contain from evidence
-# codes, PubMed references etc. which might optionally
-# follow. Declares ONE capture group, the value.
-# Use named sequences for curly brackets to avoid excessive
-# escaping as well as for better readability.
-Readonly my $QR_DE_DESCRIPTION_NAME_VALUE
-  => qr{
-         ( [^;\N{LEFT CURLY BRACKET}]+ )
-         # FIXME: the match will fail if there is no
-         # whitespace before the left curly bracket
-         (?: ; | \s+\N{LEFT CURLY BRACKET} )
-     }msx;
-
 # While processing ID fields, used to confirm that the status of an
 # entry matches an expected value. Declares NO capture groups.
 Readonly my $QR_ID_STATUS_FIELD
@@ -89,13 +75,13 @@ Readonly my $QR_OX_TAXON_DB_ENTRY
          ( [0-9]+ )
      }msx;
 
-# While processing OX fields i.e. taxonomy cross-references, allows
-# accounting for the fact some cross-references might be followed by
-# evidence codes. As of October 2018, this syntax is not declared in
-# UniProt-KB User Manual yet frequently encountered in data files.
-# Use named sequences for curly brackets to avoid excessive escaping
-# as well as for better readability.
-Readonly my $QR_OX_EVIDENCE_CODE_LIST
+# While processing OX or DE fields, i.e. taxonomy cross-references or
+# descriptions, allows accounting for the fact some entries might be
+# followed by evidence codes. As of October 2018, this syntax is not
+# declared in UniProt-KB User Manual yet frequently encountered in
+# data files.  Use named sequences for curly brackets to avoid
+# excessive escaping as well as for better readability.
+Readonly my $QR_OX_DE_EVIDENCE_CODE_LIST
   => qr{
          \N{LEFT CURLY BRACKET}
          \s*
@@ -441,16 +427,25 @@ sub _get_description {
     my ( $indent, $content )
       = ( $line =~ m{
                       \A
-                      ( \s* )  # FIXME: explain
+                      ( \s* )  # To detect sub-entries such as Includes:
                       (?:
                         RecName | SubName
                       )
                       :
                       \s*
                       Full=
-                      $QR_DE_DESCRIPTION_NAME_VALUE
+                      ( [^;]+ )
                   }msx );
     if ( defined $indent ) {
+      # Strip evidence codes, if any. This could in principle be
+      # integrated into the match but it makes the regex rather more
+      # complex.
+      $content =~ s{
+                     \s*
+                     $QR_OX_DE_EVIDENCE_CODE_LIST
+                     \z
+                 }{}msx;
+
       if ( $indent eq q{} ) {
         push @names, $content;
       }
@@ -642,7 +637,7 @@ sub _get_taxon_codes {
                        # constitute quotes so it is okay to have a
                        # semicolon between them
                        (?:
-                         $QR_OX_EVIDENCE_CODE_LIST
+                         $QR_OX_DE_EVIDENCE_CODE_LIST
                          | [^;]+
                        )?
 
