@@ -578,7 +578,7 @@ sub upload_xref_object_graphs {
                                             'source_id'  => $dep{SOURCE_ID},
                                             'species_id' => $xref->{SPECIES_ID},
                                             'label'      => $dep{LABEL},
-                                            'desc'       => $dep{DESCRIPTION},
+                                            'desc'       => $dep{DESCRIPTION} // $xref->{DESCRIPTION},
                                             'version'    => $dep{VERSION},
                                             'info_type'  => 'DEPENDENT',
                                             'dbi'        => $dbi,
