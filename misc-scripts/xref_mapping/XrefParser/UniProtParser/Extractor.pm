@@ -160,6 +160,15 @@ sub new {
 }
 
 
+sub DESTROY {
+  my ( $self ) = @_;
+
+  $self->finish();
+
+  return;
+}
+
+
 sub close_input {
   my ( $self ) = @_;
 
@@ -195,6 +204,15 @@ sub extract {
      };
 
   return $entry_object;
+}
+
+
+sub finish {
+  my ( $self ) = @_;
+
+  $self->close_input();
+
+  return;
 }
 
 

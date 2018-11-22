@@ -46,7 +46,8 @@ sub new {
 sub DESTROY {
   my ( $self ) = @_;
 
-  $self->flush();
+  $self->finish();
+
   return;
 }
 
@@ -57,18 +58,10 @@ sub baseParserInstance {
 }
 
 
-sub load {
-  my ( $self, $transformed_data ) = @_;
+sub finish {
+  my ( $self ) = @_;
 
-  if ( ! defined $transformed_data ) {
-    return;
-  }
-
-  $self->_add_to_send_buffer( $transformed_data );
-
-  if ( $self->{'send_backlog'} >= $self->{'batch_size'} ) {
-    $self->flush();
-  }
+  $self->flush();
 
   return;
 }
@@ -85,6 +78,23 @@ sub flush {
   }
 
   $self->_clear_send_buffer();
+
+  return;
+}
+
+
+sub load {
+  my ( $self, $transformed_data ) = @_;
+
+  if ( ! defined $transformed_data ) {
+    return;
+  }
+
+  $self->_add_to_send_buffer( $transformed_data );
+
+  if ( $self->{'send_backlog'} >= $self->{'batch_size'} ) {
+    $self->flush();
+  }
 
   return;
 }

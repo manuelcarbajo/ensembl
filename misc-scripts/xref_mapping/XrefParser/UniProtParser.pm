@@ -124,8 +124,9 @@ sub run {
 
   }
 
-  $loader->flush();
-  $extractor->close_input();
+  $extractor->finish();
+  $transformer->finish();
+  $loader->finish();
 
   # Extract release numbers from the release file, if provided
   if ( defined $release_file ) {

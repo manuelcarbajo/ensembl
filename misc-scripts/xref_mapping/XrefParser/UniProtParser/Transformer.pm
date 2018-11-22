@@ -115,6 +115,22 @@ sub new {
 }
 
 
+sub DESTROY {
+  my ( $self ) = @_;
+
+  $self->finish();
+
+  return;
+}
+
+
+sub finish {
+  my ( $self ) = @_;
+
+  return;
+}
+
+
 # Transforms extracted record into form that can be consumed by
 # BaseParser::upload_xref_object_graphs().
 sub transform {
