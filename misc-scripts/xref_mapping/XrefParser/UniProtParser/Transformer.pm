@@ -368,7 +368,7 @@ sub _make_links_from_gene_names {
   my @genename_xrefs;
 
   # Are we supposed to process this xref source to begin with?
-  if ( ! $whitelisted_crossreference_sources{ 'Uniprot_gn' } ) {
+  if ( ! $whitelisted_crossreference_sources{ $UNIPROT_GN_SOURCE_NAME } ) {
     return [];
   }
 
@@ -392,7 +392,7 @@ sub _make_links_from_gene_names {
     my $xref = {
                 'ACCESSION'         => $xref_accession,
                 'LABEL'             => $name,
-                'SOURCE_ID'         => $dependent_sources->{'Uniprot_gn'},
+                'SOURCE_ID'         => $dependent_sources->{$UNIPROT_GN_SOURCE_NAME},
                 'LINKAGE_SOURCE_ID' => $xref_source_id,
               };
 
