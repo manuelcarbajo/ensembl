@@ -114,12 +114,13 @@ Readonly my %prefixes_of_interest
       q{  } => 1,
     );
 
-# FIXME: this should probably be combined with
-# Transformer::%taxonomy_ids_from_taxdb_codes to make sure
-# database qualifiers stay in sync
-Readonly my %supported_taxon_database_qualifiers
+# Syntax: 0 for database qualifiers to be ignored, otherwise a
+# reference to a function translating taxon codes from the given
+# database into Ensembl taxonomy_ids.
+Readonly my %taxonomy_ids_from_taxdb_codes
   => (
-      'NCBI_TaxID' => 1,
+      # NCBI taxon codes and Ensembl taxonomy IDs are identical
+      'NCBI_TaxID' => sub { return $_[0]; },
     );
 
 
@@ -146,9 +147,15 @@ sub new {
   my $self = {
               'input_name' => $filename,
               '_io_handle' => $filehandle,
+              'maps'       => {},
+              'species_id' => $arg_ref->{'species_id'},
+              'maps'       => {},
             };
   my $class = ref $proto || $proto;
   bless $self, $class;
+
+  $self->_load_maps( $baseParserInstance );
+
   return $self;
 }
 
@@ -167,16 +174,24 @@ sub extract {
 
   $self->_record_has_all_needed_fields();
 
+  my $accession_numbers = $self->_get_accession_numbers();
+
+  # Only proceed if at least one taxon code in the entry maps
+  # to the current species ID, and skip unreviewed entries.
+  if ( ( ! $self->_taxon_codes_match_species_id() )
+       || ( $self->_entry_is_unreviewed( $accession_numbers ) ) ) {
+    return 'SKIP';
+  }
+
   my $entry_object
     = {
-       'accession_numbers' => $self->_get_accession_numbers(),
+       'accession_numbers' => $accession_numbers,
        'citation_groups'   => $self->_get_citation_groups(),
        'crossreferences'   => $self->_get_database_crossreferences(),
        'description'       => $self->_get_description() // undef,
        'gene_names'        => $self->_get_gene_names(),
        'quality'           => $self->_get_quality(),
        'sequence'          => $self->_get_sequence() // undef,
-       'taxon_codes'       => $self->_get_taxon_codes(),
      };
 
   return $entry_object;
@@ -234,6 +249,41 @@ sub get_uniprot_record {
   return 0;
 }
 
+
+sub _load_maps {
+  my ( $self, $baseParserInstance ) = @_;
+
+  my $taxonomy_ids_for_species
+    = $baseParserInstance->get_taxonomy_from_species_id( $self->{'species_id'},
+                                                         $self->{'dbh'} );
+  # If the map is empty, something is wrong
+  if ( scalar keys %{ $taxonomy_ids_for_species } == 0 ) {
+    confess "Got zero taxonomy_ids for species_id '"
+      . $self->{'species_id'} . q{'};
+  }
+  $self->{'maps'}->{'taxonomy_ids_for_species'}
+    = $taxonomy_ids_for_species;
+
+  return;
+}
+
+
+
+# Returns true if the current record describes an entry tagged as
+# unreviewed, false otherwise.
+sub _entry_is_unreviewed {
+  my ( $self, $accession_numbers ) = @_;
+
+  # This is the way the old UniProtParser identified unreviewed
+  # entries. FIXME: is this still a thing? As of October 2018 there
+  # are NO such entries in either the first ~1000 lines of the TrEMBL
+  # file or anywhere in the SwissProt one.
+  if ( lc( $accession_numbers->[0] ) eq 'unreviewed' ) {
+    return 1;
+  }
+
+  return 0;
+}
 
 
 # Parse the AC fields of the current record and produce a list of
@@ -654,11 +704,11 @@ sub _get_taxon_codes {
   while ( my ( $db_qualifier, $taxon_code ) = splice( @ox_captures, 0, 2 ) ) {
 
     if ( ( ! defined $db_qualifier )
-         || ( ! exists $supported_taxon_database_qualifiers{$db_qualifier} ) ) {
+         || ( ! exists $taxonomy_ids_from_taxdb_codes{$db_qualifier} ) ) {
       # Abort on malformed or new database qualifiers
       confess "Cannot use taxon-DB qualifier '${db_qualifier}'";
     }
-    elsif ( ! $supported_taxon_database_qualifiers{$db_qualifier} ) {
+    elsif ( ! $taxonomy_ids_from_taxdb_codes{$db_qualifier} ) {
       # Known but of no interest. Ignore it.
       next TAXON_ENTRY;
     }
@@ -675,6 +725,31 @@ sub _get_taxon_codes {
   }
 
   return \@extracted_taxon_codes;
+}
+
+
+# Translate extracted taxon codes into Ensembl taxonomy IDs, then
+# check if any of them correspond the current species ID.
+sub _taxon_codes_match_species_id {
+  my ( $self ) = @_;
+
+  my $taxon_codes = $self->_get_taxon_codes();
+  my $tid4s_map = $self->{'maps'}->{'taxonomy_ids_for_species'};
+
+  my @taxonomy_ids;
+  foreach my $taxon ( @{ $taxon_codes } ) {
+    my $code_mapper
+      = $taxonomy_ids_from_taxdb_codes{ $taxon->{'db_qualifier'} };
+    push @taxonomy_ids, $code_mapper->( $taxon->{'taxon_code'} );
+  }
+
+  foreach my $taxonomy_id ( @taxonomy_ids ) {
+    if ( exists $tid4s_map->{$taxonomy_id} ) {
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 

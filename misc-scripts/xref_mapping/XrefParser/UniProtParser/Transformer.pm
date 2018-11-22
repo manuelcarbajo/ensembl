@@ -34,15 +34,6 @@ Readonly my $ERR_SOURCE_ID_NOT_FOUND => -1;
 Readonly my $PROTEIN_ID_SOURCE_NAME => 'protein_id';
 Readonly my $UNIPROT_GN_SOURCE_NAME => 'Uniprot_gn';
 
-# FIXME: this should probably be combined with
-# Extractor::%supported_taxon_database_qualifiers to make sure
-# database qualifiers stay in sync
-Readonly my %taxonomy_ids_from_taxdb_codes
-  => {
-      # NCBI taxon codes and Ensembl taxonomy IDs are identical
-      'NCBI_TaxID' => sub { return $_[0]; },
-    };
-
 Readonly my %whitelisted_crossreference_sources
   => (
       'ChEMBL'                => 1,
@@ -131,17 +122,6 @@ sub transform {
 
   $self->{'extracted_record'} = $extracted_record;
 
-  # Only proceed if at least one taxon code in the entry maps
-  # to a valid Ensembl species ID
-  if ( ! $self->_recognised_taxon_ids() ) {
-    return;
-  }
-
-  # Skip unreviewed entries
-  if ( $self->_entry_is_unreviewed() ) {
-    return;
-  }
-
   my ( $accession, @synonyms )
     = @{ $extracted_record->{'accession_numbers'} };
   my $source_id = $self->_get_source_id();
@@ -205,17 +185,6 @@ sub get_source_id_map {
 sub _load_maps {
   my ( $self, $baseParserInstance ) = @_;
 
-  my $taxonomy_ids_for_species
-    = $baseParserInstance->get_taxonomy_from_species_id( $self->{'species_id'},
-                                                         $self->{'dbh'} );
-  # If the map is empty, something is wrong
-  if ( scalar keys %{ $taxonomy_ids_for_species } == 0 ) {
-    confess "Got zero taxonomy_ids for species_id '"
-      . $self->{'species_id'} . q{'};
-  }
-  $self->{'maps'}->{'taxonomy_ids_for_species'}
-    = $taxonomy_ids_for_species;
-
   my $source_id_map
     = {
        'Uniprot/SWISSPROT'
@@ -276,24 +245,6 @@ sub _entry_is_from_ensembl {
     = List::Util::any { $_ eq 'Ensembl' } @{ $citation_groups };
 
   return $from_group_names;
-}
-
-
-# Returns true if the current record describes an entry tagged as
-# unreviewed, false otherwise.
-sub _entry_is_unreviewed {
-  my ( $self ) = @_;
-
-  # This is the way the old UniProtParser identified unreviewed
-  # entries. FIXME: is this still a thing? As of October 2018 there
-  # are NO such entries in either the first ~1000 lines of the TrEMBL
-  # file or anywhere in the SwissProt one.
-  my $accession_numbers = $self->{'extracted_record'}->{'accession_numbers'};
-  if ( lc( $accession_numbers->[0] ) eq 'unreviewed' ) {
-    return 1;
-  }
-
-  return 0;
 }
 
 
@@ -451,31 +402,6 @@ sub _make_links_from_gene_names {
   }
 
   return \@genename_xrefs;
-}
-
-
-# Translate extracted taxon codes into Ensembl taxonomy IDs, then
-# return the number of taxons matching the species ID under
-# consideration.
-sub _recognised_taxon_ids {
-  my ( $self ) = @_;
-
-  my $taxon_codes = $self->{'extracted_record'}->{'taxon_codes'};
-  my $tid4s_map = $self->{'maps'}->{'taxonomy_ids_for_species'};
-
-  my @taxonomy_ids;
-  foreach my $taxon ( @{ $taxon_codes } ) {
-    my $code_mapper
-      = $taxonomy_ids_from_taxdb_codes{ $taxon->{'db_qualifier'} };
-    push @taxonomy_ids, $code_mapper->( $taxon->{'taxon_code'} );
-  }
-
-  my $recognised_taxonomy_ids = 0;
-  foreach my $taxonomy_id ( @taxonomy_ids ) {
-    $recognised_taxonomy_ids += ( exists $tid4s_map->{$taxonomy_id} );
-  }
-
-  return $recognised_taxonomy_ids;
 }
 
 

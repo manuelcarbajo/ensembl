@@ -76,6 +76,7 @@ sub run {
   my $extractor = $extractor_class->new({
     'baseParser' => $self,
     'file_names' => $files,
+    'species_id' => $species_id,
   });
   my $transformer = $transformer_class->new({
     'baseParser' => $self,
@@ -112,6 +113,9 @@ sub run {
   while ( $extractor->get_uniprot_record() ) {
 
     my $extracted_record = $extractor->extract();
+    if ( $extracted_record eq 'SKIP' ) {
+      next RECORD;
+    }
 
     my $transformed_data
       = $transformer->transform( $extracted_record );
